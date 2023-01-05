@@ -33,6 +33,7 @@ mosquitto_uname="NiYOAQgOICktLjosKCEFIQY"
 mosquitto_pass="dl3b/+K57J++iZ4ffxtJ4/dF"
 mqttclient=None
 channel_id="1998372"
+IsFechado=False
 
 def sub_cb(topic, msg):
    print("sub_cb(): received on topic={} the msg={}\n".format(topic.decode(), msg.decode()))
@@ -77,11 +78,11 @@ def rancheckmqtt():
         value=int(value*100/4095)
         print(value)
         pwm_c12 = pwm_12.channel(0, pin=Pin_12, duty_cycle=0.05)
-        #pwm_c.duty_cycle(0.09 ) # change the duty cycle to 30%
+        pwm_c12.duty_cycle(0.0 ) # change the duty cycle to 30%
         #get_http_call(Http_Update_host,value)
-        mqttclient_pushing(value)
+        mqttclient_Connect(value)
         checkservocurtina(value)
-        time.sleep(5)
+        time.sleep(15)
 
 def mqttclient_Connect(value):
 
@@ -96,7 +97,7 @@ def mqttclient_Connect(value):
         topic = "channels/" + channel_id + "/publish"
         tpayload="field1="+str(value)+"&status=MQTTPUBLISH"
         print("main(): Sending sensorvalue={}".format(value))
-        mqttclient.publish(topic=topic, msg="{"+tpayload+"}")
+        mqttclient.publish(topic=topic, msg=tpayload)
     except OSError as err:
         print('main(): cannot connect to broker on addr = {} with err = {}...\n'.format(mosquitto_ip, err))
 
@@ -106,10 +107,17 @@ def mqttclient_pushing(values):
 
 
 def checkservocurtina(value=100):
-    if value<30:
+    if (value<30 and not IsFechado):
         pwm_c12.duty_cycle(0.1 )
         time.sleep(1)
         pwm_c12.duty_cycle(0.05 )
+        IsFechado=True
+    elif (value>50 and IsFechado):
+        pwm_c12.duty_cycle(0.1 )
+        time.sleep(1)
+        pwm_c12.duty_cycle(0.05 )
+        IsFechado=False
+
 
 def get_http_call(url=Http_Update_host,value=-1):
     try:
@@ -171,7 +179,7 @@ def main():
     #init()
     #rancheckwifi()
     init_mqtt()
-
+    rancheckmqtt()
 
 
 if __name__ == "__main__":
