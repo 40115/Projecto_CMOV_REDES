@@ -13,9 +13,14 @@ from mqtt import MQTTClient
 from wificon import WiFiClient
 from machine import ADC, Pin, PWM
 import utime
+from network import LoRa
+import socket
+import ubinascii
+
 
 Pin_12='P12'
 Pin_16='P16'
+isfechado=False
 pwm_12 = PWM(0, frequency=50)
 pwm_c12 = pwm_12.channel(0, pin=Pin_12, duty_cycle=0.05)
 adc = ADC(0)
@@ -31,21 +36,46 @@ mosquitto_port = 1883
 device_id = "NiYOAQgOICktLjosKCEFIQY"
 mosquitto_uname="NiYOAQgOICktLjosKCEFIQY"
 mosquitto_pass="dl3b/+K57J++iZ4ffxtJ4/dF"
-mqttclient=None
-channel_id="1998372"
 IsFechado=False
+channel_id="1998372"
+
+#LOPY
+DevEUI=ubinascii.unhexlify("70B3D5499585FCA1")
+AppEUI=ubinascii.unhexlify("0059AC00000FFFFF")
+AppKey=ubinascii.unhexlify("7AD2B0DDF096AE40F1732AD8820E341C")
+
+# Initialise LoRa in LORAWAN mode.
+lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868,sf=12)
+
+def init_LORA():
+    print("Lora entered-")
+    lora.join(activation=LoRa.OTAA, auth=(DevEUI, AppEUI, AppKey), timeout=0)
+    while not lora.has_joined():
+        print('Not yet joined...')
+        time.sleep(2.5)
+    print('Joined')
+    # create a LoRa socket
+    s = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
+    # set the LoRaWAN data rate
+    s.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
+    # send some data
+    s.send(bytes([0x01, 0x02, 0x03]))
 
 def sub_cb(topic, msg):
    print("sub_cb(): received on topic={} the msg={}\n".format(topic.decode(), msg.decode()))
 
 def init_mqtt():
+    global mqttclient
+    pwm_c12 = pwm_12.channel(0, pin=Pin_12, duty_cycle=0.05)
     value=read_light()
     value=4095-value
     value=int(value*100/4095)
     print(value)
     connect_to_wifi_network_wap2(wlan_mode=WLAN.STA,net_ssid=ssid, key=net_key)
+    mqttclient = MQTTClient(device_id, mosquitto_ip, user=mosquitto_uname, password=mosquitto_pass, port=mosquitto_port)
+    mqttclient_Connect_mqtt()
     mqttclient_Connect(value)
-    pwm_c12 = pwm_12.channel(0, pin=Pin_12, duty_cycle=0.05)
+
     #pwm_c.duty_cycle(0.09 ) # change the duty cycle to 30%
     #mqttclient_pushing(value)
 
@@ -85,15 +115,9 @@ def rancheckmqtt():
         time.sleep(15)
 
 def mqttclient_Connect(value):
-
-    print('main(): create MQTT client to broker on addr = {}, port = {}...'.format(mosquitto_ip, mosquitto_port))
-    mqttclient = MQTTClient(device_id, mosquitto_ip, user=mosquitto_uname, password=mosquitto_pass, port=mosquitto_port)
+    global mqttclient
     #mqttclient = MQTTClient(device_id, mosquitto_ip, port=mosquitto_port)
     try:
-        print('main(): set callback and connect to broker...')
-        ##Set a callback listening a topic
-        mqttclient.set_callback(sub_cb)
-        mqttclient.connect()
         topic = "channels/" + channel_id + "/publish"
         tpayload="field1="+str(value)+"&status=MQTTPUBLISH"
         print("main(): Sending sensorvalue={}".format(value))
@@ -101,22 +125,30 @@ def mqttclient_Connect(value):
     except OSError as err:
         print('main(): cannot connect to broker on addr = {} with err = {}...\n'.format(mosquitto_ip, err))
 
-def mqttclient_pushing(values):
-    pass
-
-
+def mqttclient_Connect_mqtt():
+    global mqttclient
+    print('main(): set callback and connect to broker...')
+    print('main(): create MQTT client to broker on addr = {}, port = {}...'.format(mosquitto_ip, mosquitto_port))
+    ##Set a callback listening a topic
+    mqttclient.set_callback(sub_cb)
+    mqttclient.connect()
 
 def checkservocurtina(value=100):
-    if (value<30 and not IsFechado):
+    global isfechado
+    if (value < 30 and not isfechado):
         pwm_c12.duty_cycle(0.1 )
         time.sleep(1)
         pwm_c12.duty_cycle(0.05 )
-        IsFechado=True
-    elif (value>50 and IsFechado):
+        time.sleep(1)
+        pwm_c12.duty_cycle(0)
+        isfechado=True
+    if (value > 50 and isfechado):
         pwm_c12.duty_cycle(0.1 )
         time.sleep(1)
         pwm_c12.duty_cycle(0.05 )
-        IsFechado=False
+        time.sleep(1)
+        pwm_c12.duty_cycle(0)
+        isfechado=False
 
 
 def get_http_call(url=Http_Update_host,value=-1):
@@ -176,8 +208,10 @@ def connect_to_wifi_network_wap2(wlan_mode=WLAN.STA, net_ssid='ssid', sec_proto=
 
 def main():
     print("Hello World!")
+    #init_LORA()
     #init()
     #rancheckwifi()
+
     init_mqtt()
     rancheckmqtt()
 
