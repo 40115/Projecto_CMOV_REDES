@@ -1,10 +1,14 @@
 # Protótipo Ubicomp
 2022-2023
+
 Computação Móvel
+
 Redes e Serviços de Comunicações I
 
 **Desenvolvido por**
+
 João Lopes - 37133
+
 Rúben Pinto - 40115
 
 ## Descrição
