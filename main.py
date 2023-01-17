@@ -90,8 +90,8 @@ def init():
     
 def connect_to_ufp_wifi():
     ssid='eduroam'
-    email='37133@ufp.pt'
-    wifipass='243964846'
+    email='numero@ufp.pt'
+    wifipass='pass'
     connect_to_wifi_network_wpa2_ent(wlan_mode=WLAN.STA, net_ssid=ssid, sec_proto=WLAN.WPA2_ENT, username=email , password=wifipass, identity=email, timeout=10000)
 
 
