@@ -36,7 +36,6 @@ mosquitto_port = 1883
 device_id = "NiYOAQgOICktLjosKCEFIQY"
 mosquitto_uname="NiYOAQgOICktLjosKCEFIQY"
 mosquitto_pass="dl3b/+K57J++iZ4ffxtJ4/dF"
-IsFechado=False
 channel_id="1998372"
 
 #LOPY
