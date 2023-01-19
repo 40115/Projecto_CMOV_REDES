@@ -27,8 +27,8 @@ adc = ADC(0)
 adc.vref(1120)
 authorization_Key = 'HMSRJMTN97XVL8VW'
 Http_Update_host = 'https://api.thingspeak.com/'
-ssid = 'Vodafone-Pinto'
-net_key = 'helenaruben64'
+ssid = ''
+net_key = ''
 
 #Connect to mosquito
 mosquitto_ip = "mqtt3.thingspeak.com"
